@@ -29,15 +29,12 @@ let arr =[]
     console.error('End')
     
     useEffect(() => {
-
       (function(){
         const svg = d3.select('svg')
         svg.selectAll("*").remove()
-        const nodes = svg.append('g').selectAll('circle').data(arr).enter().append('circle').attr('r',15)
-        // .attr('x',25)
-        // .attr('y',25)
-        .attr('transform',(d,i)=>`translate(${(i%19)*50},${Math.floor(i/20)*50})`)
-        .attr('cx',-width/2 + 25)
+        const nodes = svg.append('g').selectAll('circle').data(arr,(d,i)=>i).enter().append('circle').attr('r',20)
+        // .attr('cx',25).attr('cy',25)
+        // .attr('transform',(d,i)=>`translate(${(i%19)*50},${Math.floor(i/20)*50})`)
       // console.log(svg.selectAll('circle').exit());
       })()
     
