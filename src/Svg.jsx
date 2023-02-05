@@ -12,7 +12,7 @@ const Svg = () => {
   // }
   const pack = data => d3.pack()
   .size([width, height])
-  .padding(60)
+  .padding(40)
 (d3.hierarchy(data)
   .sum(d => d.value)
   .sort((a, b) => b.value - a.value))
