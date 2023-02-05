@@ -1,71 +1,129 @@
 import React, { useEffect, useState } from 'react'
 import * as d3 from 'd3'
 import data from  '../../hashedCsv.json'
-import { svg } from 'd3'
+import json from './assets/flare-2.json'
 const Svg = () => {
-  // const [arr, setArr] = useState([])
   const [zoomLevel, setCount] = useState(0)
+  const data = json
 
   const width = 960
   const height = width    
-let arr =[]
-  console.warn('group'+zoomLevel)
-  function handleClick(){
-    setCount((zoomLevel) => zoomLevel + 1)
+  // function handleClick(){
+  //   setCount((zoomLevel) => zoomLevel + 1)
+  // }
+  const pack = data => d3.pack()
+  .size([width, height])
+  .padding(60)
+(d3.hierarchy(data)
+  .sum(d => d.value)
+  .sort((a, b) => b.value - a.value))
+
+  const root = pack(data);
+  let focus = root;
+  let view;
+
+
+  const color = d3.scaleLinear()
+  .domain([0, 5])
+  .range(["hsl(274, 100%, 50%)", "#441a66"])
+  .interpolate(d3.interpolateHcl)
+
+  
+  const styles ={
+    margin: `${0 -14}px`,
+    backgroundColor: '#ac67fb',
+    cursor: "pointer"
   }
-  for (const title in data) {
-    if (Object.hasOwnProperty.call(data, title)) {
-      const element = data[title];
-      if(element[zoomLevel] === zoomLevel+1){
-        console.log(title);
-        arr.push(title)
-      } else if (element[zoomLevel] < zoomLevel+1){
-        console.log(`%c${title}`,'background-color: rgba(255, 222, 4, 0.741);')
-       arr = arr.filter((el)=>el!==title)
+  
+  
+  useEffect(()=>
+{
+  
+  const svg = d3.select('svg').on("click", (event) => zoom(event, root));
+  console.log(root.descendants());
+
+
+  const node = svg.append("g")
+    .selectAll("circle")
+    .data(root.descendants().slice(1))
+    // .join("circle")
+    .enter()
+    .append('circle')
+      .attr("fill", d => d.children ? color(d.depth) : "#c18bff")
+      // .attr("fill", d => d.parent ? color(d.depth): "white")
+      // .attr("fill", d => d.parent === root ? color(d.depth) : "white")
+      .attr("display", d => d.parent===root ? "inline" : "none")
+      .attr("pointer-events", d => !d.children ? "none" : null)
+      .on("mouseover", function() { d3.select(this).attr("stroke", "#000"); })
+      .on("mouseout", function() { d3.select(this).attr("stroke", null); })
+      .on("click", (event, d) => focus !== d && (zoom(event, d), event.stopPropagation()));
+
+  const label = svg.append("g")
+      .style("font", "10px sans-serif")
+      .attr("pointer-events", "none")
+      .attr("text-anchor", "middle")
+    .selectAll("text")
+    .data(root.descendants())
+    .join("text")
+      .style("fill-opacity", d => d.parent === root ? 1 : 0)
+      .style("display", d => d.parent === root ? "inline" : "none")
+      .text(d => d.data.name);
+
+      
+      function zoomTo(v) {
+        const k = width / v[2];
+        
+        view = v;
+        
+        label.attr("transform", d => `translate(${(d.x - v[0]) * k},${(d.y - v[1]) * k})`);
+        node.attr("transform", d => `translate(${(d.x - v[0]) * k},${(d.y - v[1]) * k})`);
+        node.attr("r", d => d.r * k).attr();
       }
-    }
+      
+  zoomTo([root.x, root.y, root.r * 2]);
+  
+  function zoom(event, d) {
+    const focus0 = focus;
+
+    focus = d;
+    setCount(focus.depth)
+    const transition = svg.transition()
+        .duration(event.altKey ? 7500 : 750)
+        .tween("zoom", d => {
+          const i = d3.interpolateZoom(view, [focus.x, focus.y, focus.r * 2]);
+          return t => zoomTo(i(t));
+        });
+
+    label
+      .filter(function(d) { return d.parent === focus || this.style.display === "inline"; })
+      .transition(transition)
+        .style("fill-opacity", d => d.parent === focus ? 1 : 0)
+        .on("start", function(d) { if (d.parent === focus) this.style.display = "inline"; })
+        .on("end", function(d) { if (d.parent !== focus) this.style.display = "none"; });
+    node
+      .filter(function(d) { return d.parent === focus || this.style.display === "inline"; })
+      .transition(transition)
+        .style("fill-opacity", d => d.parent === focus ? 1 : 0)
+        .on("start", function(d) { if (d.parent === focus) this.style.display = "inline"; })
+        .on("end", function(d) { if (d.parent !== focus) this.style.display = "none"; });
   }
-    console.log(`%c${arr}`,'background-color: #b6f0807a;')
-    console.error('End')
-    
-    useEffect(() => {
 
-      // (function(){
-      //   const svg = d3.select('svg')
-      //   svg.selectAll("*").transition('t').remove()
-      //   const nodes = svg.append('g').selectAll('circle').data(arr).join(enter=>enter
-      //   .append('circle')
-      //   .attr('r',15),
-      //   update=>update
-      //   .append('circle')
-      //   ,exit=>{console.log('Exit Selection', exit)
-      // return exit.attr('fill','blue')})
-      //   // .attr('x',25)
-      //   // .attr('y',25)
-      //   .attr('transform',(d,i)=>`translate(${(i%19)*50},${Math.floor(i/20)*50})`)
-      //   .attr('cx',-width/2 + 25)
-      // // console.log(svg.selectAll('circle').exit());
-      // })()
-    
-      // return () => {
-      //   d3.select('svg').empty()
-      // }
-    }, [arr])
-    
+  return ()=>{
+    svg.selectAll('*').remove()
+  }
+  
+},[])
 
-// console.log(arr);
-// d3.append('g').selectAll('circle').data(data).enter().append('circle').attr('r',(d)=>d*2)
-// .attr('cx',(d,i)=>i*50)
-// .attr('transform',`translate(${width/2},${height/2})`)
-// .attr('fill','#C70039')
-// .attr('opacity',0.2)
+useEffect(()=>{
+  console.log(root)
+  console.log('Focus',focus)
+},[focus])
 
-  // console.log(data); .attr("viewBox", `-${width / 2} -${height / 2} ${width} ${height}`)
+  
+ // console.log(data); .attr("viewBox", `-${width / 2} -${height / 2} ${width} ${height}`)
   return (<>
-  <svg width={width} viewBox={`-${width / 2} -${width /2} ${width} ${width}`} style={{backgroundColor:" #ffffffbd"}} height={width}>
-    {arr.map((element,i)=>{
-      return <circle r={15} cx={-width/2 +25} transform={`translate(${(i%19)*50},${Math.floor(i/20)*50})`}></circle>
-    })}
+  <svg width={width} style={styles} viewBox={`-${width / 2} -${width /2} ${width} ${width}`}  height={width}>
+
   </svg>
   <button onClick={() => handleClick()}>
              Level is {zoomLevel}
