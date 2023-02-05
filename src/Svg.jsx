@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react'
 import * as d3 from 'd3'
-import data from  '../../hashedCsv.json'
 import json from './assets/flare-2.json'
 const Svg = () => {
   const [zoomLevel, setCount] = useState(0)
